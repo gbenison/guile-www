@@ -120,6 +120,11 @@ Data -- (www data *)
 * http-status::         The dreaded 404 lives here.
 * mime-types::          Map filename extension to MIME type(s).
 
+Sessions - (www session *)
+* sessions::            Groups of related http requests.
+* session fs::          Filesystem-based sessions.
+* session db::          Database-based sessions.
+* session abstraction:: More on session manager implementation.
 
 * Index::
 @end menu
@@ -947,6 +952,83 @@ achieved if @var{resolve} were allowed to be a general resolution
 procedure instead of simply a method specifier.  Perhaps that feature
 will be added in the future, and @code{select-extensions} replaced by
 @code{map-mime-types}.  We'll see@dots{}
+
+@c ---------------------------------------------------------------------------
+@node sessions
+@chapter (www session)
+
+@section Groups of related HTTP requests
+
+One application of cookies is to group series of related http requests
+into an abstraction called a @dfn{session}.  A session usually consists
+of a bit of client-side state in the form of a cookie which is
+associated with additional server-side state (such as a user account).
+The necessary server-side state can be stored in several different ways,
+each of which is implemented by a ``handler'' module.  For example,
+@code{(www session fs)} uses the server filesystem to store session
+information, and @code{(www session db)} uses a database (by way of the
+@code{(dbi dbi)} guile module).  Additional session handlers can be
+defined by implementing the methods required by the @code{(www session
+base)} module (@pxref{session abstraction}).
+
+@tsin i session-set-user!
+@tsin i session-get-user
+@tsin i session-propagate
+
+The following example illustrates the steps involved in using sessions:
+initiating (or resuming) a session using one of the handlers, querying
+the session for the associated user (or setting the current user if
+this is a login page), generating html customized for the current user,
+and finally sending the HTTP reply.
+
+@example
+(use-modules (www session fs)
+             (www server-utils answer))
+
+;; Resume (or initiate) a filesystem-based session
+(define my-session (session:fs "/tmp"))
+
+;; Optionally: if this is a login request, authenticate
+;; the user and associate it with this session.  The
+;; 'authenticate-user' procedure must be defined somewhere.
+(define username (authenticate-user))
+(session-set-user! my-session username)
+
+;; Generate content based on the user.  Likewise, the
+;; 'generate-content' procedure must be defined somewhere.
+(define my-content (generate-content (session-get-user my-session)))
+
+;; Create an HTTP response generator.
+(define mp (mouthpiece (current-output-port)))
+(mp #:add-content my-content)
+
+;; Ensure that a cookie is set, allowing this session to continue.
+(mp #:add-header #f (session-propagate my-session))
+
+;; send reply
+(mp #:set-reply-status:success)
+(mp #:send-reply)
+@end example
+
+@c ---------------------------------------------------------------------------
+@node            session fs
+@chapter    (www session fs)
+
+@section Filesystem-based session management
+
+@tsin i session:fs
+
+@c ---------------------------------------------------------------------------
+@node            session db
+@chapter    (www session db)
+
+@section Database-based session management
+
+@tsin i session:db
+
+@c ---------------------------------------------------------------------------
+@node    session abstraction
+@tsin i "session abstraction" - chapter
 
 @c ---------------------------------------------------------------------------
 @node       Index

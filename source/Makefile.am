@@ -19,7 +19,7 @@
 ## write to the Free Software Foundation, Inc., 51 Franklin Street,
 ## Fifth Floor, Boston, MA  02110-1301  USA
 
-SUBDIRS = server-utils data
+SUBDIRS = server-utils data session
 
 wwwdir = $(GUILE_LIBSITE)/www
 www_DATA = $(top_leaves)
@@ -35,6 +35,7 @@ all-modules.list:
 	{ for m in $(top_leaves) ; do echo "(www $$m)" ; done ;			\
 	  for m in $(su_leaves) ; do echo "(www server-utils $$m)" ; done ;	\
 	  for m in $(data_leaves) ; do echo "(www data $$m)" ; done ;		\
+	  for m in $(session_leaves) ; do echo "(www session $$m)" ; done ;	\
 	} > $@
 
 check_DATA = .fake
@@ -48,6 +49,8 @@ check_DATA = .fake
 
 clean-local:
 	-rm -rf .fake
+
+TESTS_ENVIRONMENT = HAVE_MOD_DBI_DBI=$(HAVE_MOD_DBI_DBI)
 
 TESTS = alive.test
 

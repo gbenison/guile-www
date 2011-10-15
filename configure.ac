@@ -43,9 +43,16 @@ AC_SUBST([MMFLAGS])
 
 SNUGGLE_GUILE_LIBSITE_DIR([gwww])
 
+SNUGGLE_MODULE_AVAILABLE([dbi dbi])
+AS_VAR_IF([have_mod_dbi_dbi],[yes],
+[HAVE_MOD_DBI_DBI=true],
+[HAVE_MOD_DBI_DBI=false])
+AC_SUBST([HAVE_MOD_DBI_DBI])
+
 AC_CONFIG_FILES([
   Makefile
   source/server-utils/Makefile
+  source/session/Makefile
   source/data/Makefile
   source/Makefile
   doc/Makefile

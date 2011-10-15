@@ -41,6 +41,11 @@ $debug && guile="$guile --debug"
 
 all='all-modules.list'
 
+if ${HAVE_MOD_DBI_DBI-false} ; then : ; else
+    sed '/www session db/d' $all > sub.list
+    all=sub.list
+fi
+
 decho ()
 {
     if $debug ; then echo "$1" ; fi

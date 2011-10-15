@@ -28,6 +28,7 @@ include $(top_srcdir)/build-aux/common.mk
 allstems =			\
  $(top_leaves)			\
  $(data_leaves:%=data/%)	\
+ $(session_leaves:%=session/%)	\
  $(su_leaves:%=server-utils/%)
 
 snippets: $(allstems:%=$(top_srcdir)/source/%.scm)
