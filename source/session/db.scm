@@ -28,13 +28,6 @@
                session-set-user!
                session-propagate)
   #:use-module (www session base)
-
-  ;; FIXME: Hardcoding a 3rd-party module is not cool.
-  ;; We need to either explicitly bubble this requirement up to make
-  ;; users aware (e.g., rename the module ‘(www session dbi-dbi)’)
-  ;; or find a way to make the selection dynamic (at runtime).  --ttn
-  #:use-module (dbi dbi)
-
   #:use-module ((srfi srfi-1) #:select (filter))
   #:use-module ((srfi srfi-13) #:select (string-join)))
 
@@ -55,64 +48,52 @@
 
 ;;; ---------- database-based session management ----------
 
-(define (dbi-assert-ok! dbh)
-  (let ((status (dbi-get_status dbh)))
-    (or (zero? (car status))
-        (throw 'errdb (cdr status)))))
+(define (session-from-db query-op table-name session-id)
+  (query-op
+   (fs "SELECT * from ~A WHERE session_id=~A"
+       table-name
+       session-id)))
 
-(define (dbi:get-one-row dbh query)
-  (dbi-query dbh query)
-  (dbi-assert-ok! dbh)
-  (dbi-get_row dbh))
-
-(define (session-from-db dbh table-name session-id)
-  (dbi:get-one-row
-   dbh (fs "SELECT * from ~A WHERE session_id=~A"
-           table-name
-           session-id)))
-
-(define (db:allocate-session dbh table-name)
+(define (db:allocate-session query-op table-name)
   (lambda (token)
-    (dbi-query dbh (fs "INSERT INTO ~A (token) values (~A)"
-                       table-name
-                       token))
-    (dbi-assert-ok! dbh)
-    (dbi-query dbh "SELECT last_insert_id ()")
-    (dbi-assert-ok! dbh)
-    (session-from-db dbh table-name
-                     ;; session-id
-                     (cdar (dbi-get_row dbh)))))
+    (query-op (fs "INSERT INTO ~A (token) values (~A)"
+		  table-name
+		  token))
+    (let ((session-id (cdar (query-op "SELECT last_insert_id ()"))))
+      (session-from-db query-op table-name session-id))))
 
-(define (db:sync-database dbh table-name session)
+(define (db:sync-database query-op table-name session)
   (let* ((session-id (assoc-ref session "session_id"))
          (session* (alist-scrub session '("session_id"
                                           "token")))
          ;; FIXME: Handle empty string case better.
          (fields (map (lambda (x)
                         (fs "~A=~A" (car x) (sql-fmt (cdr x))))
-                      session*))
-         (cmd (fs "UPDATE ~A set ~A WHERE session_id=~A"
-                  table-name
-                  (string-join fields ", ")
-                  session-id)))
-    (dbi-query dbh cmd)
-    (dbi-assert-ok! dbh)))
+                      session*)))
+    (query-op
+     (fs "UPDATE ~A set ~A WHERE session_id=~A"
+	 table-name
+	 (string-join fields ", ")
+	 session-id))))
 
 ;; Resume (or initiate, if none exists) a session using a database for
-;; server-side state management.  @var{dbh} is a database connection
-;; handle returned by @code{dbi-open}.  @var{table-name} is the name of
-;; a table in the database which must contain columns @code{session_id}
-;; (of type @code{int}) and @code{token} (sufficient to hold 8-byte
-;; integers).
+;; server-side state management.  @var{query-op} is a function
+;; @code{lambda(query)} where @var{query} is an SQL statement to pass
+;; to a database, and where the return value is an alist of the form
+;; ((column_name . value) ... ) containing the first row of the result
+;; of the query.
+;; @var{table-name} is the name of a table in the database which must
+;; contain columns @code{session_id} (of type @code{int}) and @code{token}
+;; (sufficient to hold 8-byte integers).
 ;;
 ;; Return a session object suitable as the argument to
 ;; @code{session-get-user}, @code{session-set-user!}, and
 ;; @code{session-propagate}.
 ;;
-(define (session:db dbh table-name)
+(define (session:db query-op table-name)
 
   (define (lookup session-id)
-    (session-from-db dbh table-name session-id))
+    (session-from-db query-op table-name session-id))
 
   (define (get-id session)
     (assoc-ref session "session_id"))
@@ -125,11 +106,11 @@
 
   (define (set-user! session user-name)
     (let ((new-session (assoc-set! session "user_name" user-name)))
-      (db:sync-database dbh table-name new-session)
+      (db:sync-database query-op table-name new-session)
       new-session))
 
   ;; Do it!
-  (make-session (db:allocate-session dbh table-name)
+  (make-session (db:allocate-session query-op table-name)
                 lookup
                 get-id
                 get-token

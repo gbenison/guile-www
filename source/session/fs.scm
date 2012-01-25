@@ -32,9 +32,7 @@
 ;;; ---------- utilities ----------
 
 (define (rewind port)
-  ;; FIXME: ‘file-set-position’ is not available on Guile 1.4.x.
-  ;; How about ‘(seek port 0 SEEK_SET)’?  --ttn
-  (file-set-position port 0))
+  (seek port 0 SEEK_SET))
 
 ;;; ------- filesystem-based session management ----------
 

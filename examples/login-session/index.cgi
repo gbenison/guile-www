@@ -38,12 +38,16 @@ exec ${GUILE-guile} -s $0
 
 ;; As an alternative - uncomment the following for
 ;; database-based session management.
-; (use-modules (dbi dbi) (www session db))
+; (use-modules (dbi dbi)
+; 	     (www session db))
+; 
+; (define dbh (dbi-open "mysql" "::test:socket:/var/run/mysqld/mysqld.sock"))
 ; (define session
-;  (session:db
-;   (dbi-open "mysql" "::test:socket:/var/run/mysqld/mysqld.sock")
-;   "sessions"))
-
+;   (session:db
+;     (lambda (query)
+;       (dbi-query dbh query)
+;       (dbi-get_row dbh))
+;     "sessions"))
 
 ;; See if there is a login request.
 (define login-status-message
