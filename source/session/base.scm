@@ -118,8 +118,6 @@
              (throw 'invalid-session id token))
          session))
 
-  ;; FIXME: Perhaps this should be left to caller.  --ttn
-  (cgi:init)
   (let* ((cookie (cgi:cookie "sessionID"))
          (session (or (and cookie
                            (receive (key token)
