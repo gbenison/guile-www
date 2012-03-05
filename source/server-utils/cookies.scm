@@ -54,7 +54,7 @@
 ;;;---------------------------------------------------------------------------
 ;;; simple parsing
 
-(define +pair-exp+ (make-regexp "(,[ \t]*)*([^=]+)=([^,]+)"))
+(define +pair-exp+ (make-regexp "(;[ \t]*)*([^=]+)=([^;]+)"))
 
 ;; Parse @var{string} for cookie-like fragments using the simple regexp:
 ;; @example

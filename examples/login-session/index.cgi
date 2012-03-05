@@ -27,27 +27,28 @@ exec ${GUILE-guile} -s $0
 
 (use-modules
  (sxml simple)
- ((www cgi) #:select (cgi:values))
+ (www cgi)
  ((www server-utils answer) #:select (mouthpiece)))
 
 ;; FIXME: Should do ‘cgi:init’ somewhere, maybe here. --ttn
+(cgi:init)
 
 ;; The following uses filesystem-based session management.
-(use-modules (www session fs))
-(define session (session:fs "/tmp"))
+; (use-modules (www session fs))
+; (define session (session:fs "/tmp"))
 
-;; As an alternative - uncomment the following for
-;; database-based session management.
-; (use-modules (dbi dbi)
-; 	     (www session db))
-; 
-; (define dbh (dbi-open "mysql" "::test:socket:/var/run/mysqld/mysqld.sock"))
-; (define session
-;   (session:db
-;     (lambda (query)
-;       (dbi-query dbh query)
-;       (dbi-get_row dbh))
-;     "sessions"))
+; As an alternative - uncomment the following for
+; database-based session management.
+ (use-modules (dbi dbi)
+ 	     (www session db))
+ 
+ (define dbh (dbi-open "mysql" "::test:socket:/var/run/mysqld/mysqld.sock"))
+ (define session
+   (session:db
+     (lambda (query)
+       (dbi-query dbh query)
+       (dbi-get_row dbh))
+     "sessions"))
 
 ;; See if there is a login request.
 (define login-status-message

@@ -27,13 +27,14 @@
             session-get-user
             session-set-user!
             session-propagate)
-  #:use-module ((www cgi) #:select (cgi:init
-                                    cgi:cookie))
+  #:use-module (www cgi)
   #:use-module ((www server-utils cookies) #:select (rfc2109-set-cookie-string))
   #:use-module ((srfi srfi-13) #:select (string-tokenize))
   #:use-module ((srfi srfi-14) #:select (char-set-complement
                                          char-set))
   #:use-module ((ice-9 receive) #:select (receive)))
+
+(define logfile (open-output-file "/tmp/base.log"))
 
 ;;; ---------- utilities ----------
 
@@ -118,12 +119,19 @@
              (throw 'invalid-session id token))
          session))
 
+  (format logfile "HTTP_COOKIE=~a~%" (getenv "HTTP_COOKIE"))
+  (format logfile "All cookies: ~a~%" (cgi:cookie-names))
+  (format logfile "Cooke -> ~a = ~a~%" (car (cgi:cookie-names))(cgi:cookie (car (cgi:cookie-names))))
+
   (let* ((cookie (cgi:cookie "sessionID"))
          (session (or (and cookie
                            (receive (key token)
                                (cookie->key cookie)
                              (validate (lookup key) key token)))
                       (allocate-session!))))
+
+    (format logfile "cookie -> ~a~%" cookie)
+
     ;; rv
     (lambda (request)
       (case request
