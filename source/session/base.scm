@@ -119,10 +119,6 @@
              (throw 'invalid-session id token))
          session))
 
-  (format logfile "HTTP_COOKIE=~a~%" (getenv "HTTP_COOKIE"))
-  (format logfile "All cookies: ~a~%" (cgi:cookie-names))
-  (format logfile "Cooke -> ~a = ~a~%" (car (cgi:cookie-names))(cgi:cookie (car (cgi:cookie-names))))
-
   (let* ((cookie (cgi:cookie "sessionID"))
          (session (or (and cookie
                            (receive (key token)
